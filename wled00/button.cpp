@@ -4,9 +4,9 @@
  * Physical IO
  */
 
-#define WLED_DEBOUNCE_THRESHOLD      50 // only consider button input of at least 50ms as valid (debouncing)
-#define WLED_LONG_PRESS             600 // long press if button is released after held for at least 600ms
-#define WLED_DOUBLE_PRESS           350 // double press if another press within 350ms after a short press
+#define WLED_DEBOUNCE_THRESHOLD      25 // only consider button input of at least X milliseconds as valid (debouncing)
+#define WLED_LONG_PRESS            2000 // long press if button is released after held for at least X milliseconds
+#define WLED_DOUBLE_PRESS          1000 // double press if another press within X milliseconds after a short press
 #define WLED_LONG_REPEATED_ACTION   300 // how often a repeated action (e.g. dimming) is fired on long press on button IDs >0
 #define WLED_LONG_AP               5000 // how long button 0 needs to be held to activate WLED-AP
 #define WLED_LONG_FACTORY_RESET   10000 // how long button 0 needs to be held to trigger a factory reset

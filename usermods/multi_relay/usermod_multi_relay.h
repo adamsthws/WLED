@@ -3,7 +3,7 @@
 #include "wled.h"
 
 #ifndef MULTI_RELAY_MAX_RELAYS
-  #define MULTI_RELAY_MAX_RELAYS 4
+  #define MULTI_RELAY_MAX_RELAYS 6
 #else
   #if MULTI_RELAY_MAX_RELAYS>8
     #undef MULTI_RELAY_MAX_RELAYS
