@@ -448,9 +448,9 @@
 // PWM settings
 #ifndef WLED_PWM_FREQ
 #ifdef ESP8266
-  #define WLED_PWM_FREQ    880 //PWM frequency proven as good for LEDs
+#define WLED_PWM_FREQ 2020 //  Imitating the flashlight driver frequency. Default WLED value: 880
 #else
-  #define WLED_PWM_FREQ  19531
+#define WLED_PWM_FREQ 2020 // Imitating the flashlight driver frequency. Default WLED value: 19531
 #endif
 #endif
 
