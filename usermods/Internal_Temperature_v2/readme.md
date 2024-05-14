@@ -6,8 +6,8 @@
 
 
 ## Features
- - &nbsp;🌡️&nbsp; Adds the internal temperature readout of the chip to the Info tab
- - 🥵 High temperature indication/action. (configurable preset and threshold)
+ - &nbsp;🌡️&nbsp; Adds the internal temperature readout of the chip to the `Info` tab
+ - 🥵 High temperature indicator/action. (Configurable threshold and preset)
  - 📣 Publishes the internal temperature over the MQTT topic: `mcutemp`
 <br><br>
 

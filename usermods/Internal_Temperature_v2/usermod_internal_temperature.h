@@ -10,27 +10,30 @@ private:
   unsigned long lastTime = 0;
   bool isEnabled = false;
   float temperature = 0;
-  float activationThreshold = 90.0;     // Default temperature threshold
-  float resetThreshold = 89.0;          // Reactivation temperature threshold
-  //float reactivationDifference = 1.0; // Reactivation temperature threshold
-  //int lastPreset = 0;                 // Variable to store the last active preset
-  int presetToActivate = 99;            // Default preset setting (-1 = disabled)
+  float activationThreshold = 90.0;     // Temperature threshold to trigger high-temperature actions
+  float resetThreshold = 89.0;          // Lower reset threshold to prevent frequent toggling
+  float resetDifference = 1.0;          // Used to auto-calculate difference between the two thresholds
+  int presetToActivate = -1;            // Preset to activate when temp goes above threshold (-1 = disabled)
   bool isAboveThreshold = false;        // Flag to track if the high temperature preset is currently active
 
   static const char _name[];
   static const char _enabled[];
   static const char _loopInterval[];
   static const char _activationThreshold[];
-  static const char _resetThreshold[];
   static const char _presetToActivate[];
 
   // any private methods should go here (non-inline method should be defined out of class)
   void publishMqtt(const char *state, bool retain = false); // example for publishing MQTT message
 
+  // Updates the resetThreshold based on the current activationThreshold.
+  void updateResetThreshold() {
+    resetThreshold = activationThreshold - resetDifference;
+    }
+
 public:
   void setup()
   {
-  //resetThreshold = activationThreshold - reactivationDifference;
+    updateResetThreshold();
   }
 
   void loop()
@@ -60,9 +63,8 @@ public:
         }
       // Activate the 'over-threshold' preset if it's not already active
       if (presetToActivate != -1 && currentPreset != presetToActivate) {
-        //lastPreset = currentPreset;      // Save the current preset to allow re-activation later
-        saveTemporaryPreset();             // Save the current preset to allow re-activation later
-        applyPreset(presetToActivate);     // Activate the high temperature preset
+        saveTemporaryPreset();  // Save the current preset to allow re-activation later
+        applyPreset(presetToActivate);
         }
       }
     // Check if temperature is back below the threshold
@@ -73,8 +75,7 @@ public:
         }
       // Revert back to the original preset
       if (currentPreset == presetToActivate){
-        applyTemporaryPreset();
-        //applyPreset(lastPreset);
+        applyTemporaryPreset(); // Restore the previously stored active preset
         }
       }
 
@@ -118,7 +119,6 @@ public:
     top[FPSTR(_enabled)] = isEnabled;
     top[FPSTR(_loopInterval)] = loopInterval;
     top[FPSTR(_activationThreshold)] = activationThreshold;
-    top[FPSTR(_resetThreshold)] = resetThreshold;
     top[FPSTR(_presetToActivate)] = presetToActivate;
   }
 
@@ -129,7 +129,7 @@ public:
     oappend(SET_F("addInfo('Internal Temperature:Loop Interval', 1, 'ms');"));
     // Display '°C' next to the 'Activation Threshold' setting
     oappend(SET_F("addInfo('Internal Temperature:Activation Threshold', 1, '°C');"));
-    // Display '-1 = disabled' next to the 'Preset To Activate' setting
+    // Display '-1 = Disabled' next to the 'Preset To Activate' setting
     oappend(SET_F("addInfo('Internal Temperature:Preset To Activate', 1, '-1 = disabled');"));
     }
 
@@ -140,15 +140,8 @@ public:
     configComplete &= getJsonValue(top[FPSTR(_enabled)], isEnabled);
     configComplete &= getJsonValue(top[FPSTR(_loopInterval)], loopInterval);
     configComplete &= getJsonValue(top[FPSTR(_presetToActivate)], presetToActivate);
-
-    // Calculate the difference between activation and re-activation thresholds
-    //float oldactivationThreshold = activationThreshold; // Store the old threshold value to compare
-    configComplete &= getJsonValue(top[FPSTR(_activationThreshold)], activationThreshold); // Get activation threshold value
-    configComplete &= getJsonValue(top[FPSTR(_resetThreshold)], resetThreshold);  // Get reset threshold value
-    //if (activationThreshold != oldactivationThreshold) {    // If activation threshold changed...
-    //        resetThreshold = activationThreshold - reactivationDifference;  // Calculate the new re-activation threshold
-    //    }
-
+    configComplete &= getJsonValue(top[FPSTR(_activationThreshold)], activationThreshold);
+    updateResetThreshold(); // Recalculate the resetThreshold (relative to activationThreshold)
     return configComplete;
   }
 
@@ -163,13 +156,13 @@ const char InternalTemperatureUsermod::_enabled[] PROGMEM = "Enabled";
 const char InternalTemperatureUsermod::_loopInterval[] PROGMEM = "Loop Interval";
 const char InternalTemperatureUsermod::_activationThreshold[] PROGMEM = "Activation Threshold";
 const char InternalTemperatureUsermod::_presetToActivate[] PROGMEM = "Preset To Activate";
-const char InternalTemperatureUsermod::_resetThreshold[] PROGMEM = "Reset Threshold";
 
 void InternalTemperatureUsermod::publishMqtt(const char *state, bool retain)
 {
 #ifndef WLED_DISABLE_MQTT
   // Check if MQTT Connected, otherwise it will crash the 8266
   if (WLED_MQTT_CONNECTED)
+  // Publish temperature
   {
     char subuf[64];
     strcpy(subuf, mqttDeviceTopic);
