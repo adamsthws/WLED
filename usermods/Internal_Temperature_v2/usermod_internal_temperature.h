@@ -6,14 +6,14 @@ class InternalTemperatureUsermod : public Usermod
 {
 
 private:
+  static const unsigned long minLoopInterval = 1000;  // minimum allowable interval (ms)
   unsigned long loopInterval = 10000;
   unsigned long lastTime = 0;
   bool isEnabled = false;
   float temperature = 0;
-  float activationThreshold = 90.0;     // Temperature threshold to trigger high-temperature actions
-  float resetThreshold = 89.0;          // Lower reset threshold to prevent frequent toggling
-  float resetDifference = 1.0;          // Used to auto-calculate difference between the two thresholds
   int presetToActivate = -1;            // Preset to activate when temp goes above threshold (-1 = disabled)
+  float activationThreshold = 90.0;     // Temperature threshold to trigger high-temperature actions
+  float resetMargin = 2.0;              // Margin below the activation threshold (Prevents frequent toggling when close to threshold)
   bool isAboveThreshold = false;        // Flag to track if the high temperature preset is currently active
 
   static const char _name[];
@@ -25,15 +25,15 @@ private:
   // any private methods should go here (non-inline method should be defined out of class)
   void publishMqtt(const char *state, bool retain = false); // example for publishing MQTT message
 
-  // Updates the resetThreshold based on the current activationThreshold.
-  void updateResetThreshold() {
-    resetThreshold = activationThreshold - resetDifference;
+  //  Makes sure the measurement interval can't be set too low
+  void setSafeLoopInterval(unsigned long newInterval) {
+    loopInterval = max(newInterval, minLoopInterval);
     }
 
 public:
   void setup()
   {
-    updateResetThreshold();
+    setSafeLoopInterval(loopInterval);  // Initialize with a safe loop interval
   }
 
   void loop()
@@ -68,7 +68,7 @@ public:
         }
       }
     // Check if temperature is back below the threshold
-    else if (temperature <= resetThreshold) {
+    else if (temperature <= (activationThreshold - resetMargin)) {
       // Update the state flag if not already set
       if (isAboveThreshold){
         isAboveThreshold = false;
@@ -139,9 +139,9 @@ public:
     bool configComplete = !top.isNull();
     configComplete &= getJsonValue(top[FPSTR(_enabled)], isEnabled);
     configComplete &= getJsonValue(top[FPSTR(_loopInterval)], loopInterval);
+    setSafeLoopInterval(loopInterval);                                                  // Makes sure the loop interval isn't too small.
     configComplete &= getJsonValue(top[FPSTR(_presetToActivate)], presetToActivate);
     configComplete &= getJsonValue(top[FPSTR(_activationThreshold)], activationThreshold);
-    updateResetThreshold(); // Recalculate the resetThreshold (relative to activationThreshold)
     return configComplete;
   }
 
